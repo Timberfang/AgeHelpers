@@ -27,10 +27,7 @@ function Convert-AgeArchive {
     .PARAMETER Decrypt
         Select the decryption mode.
     .PARAMETER Key
-        Provide a key for key-pair authentication.
-
-        When using the encryption mode, this must be a valid public key.
-        When using the decryption mode, this must be a valid key file.
+        Provide a key for key-pair authentication. This must be a valid age key file or ssh key file generated via age-keygen or ssh-keygen, respectively.
     .PARAMETER Delete
         Once successful encryption or decryption has completed, delete the original file or directory.
     .EXAMPLE
@@ -79,7 +76,7 @@ function Convert-AgeArchive {
 
         # Process input
         if (!(Test-Path $Path)) { throw "Error: Path '$Path' not found." }
-        if ($Decrypt -and ($null -ne $Key) -and !(Test-Path $Key)) { throw "Error: Path '$Key' not found." }
+        if (($null -ne $Key) -and !(Test-Path $Key)) { throw "Error: Path '$Key' not found." }
         $Target = Get-Item $Path
         $IsDirectory = $Target.PSIsContainer -or $Target -like '*.tar.age'
 
@@ -94,8 +91,8 @@ function Convert-AgeArchive {
         # Encrypt mode
         if ($Encrypt) {
             if ($null -ne $Key) {
-                if ($IsDirectory) { & tar -c -C $Target.Parent $Target.Name | & age --encrypt -r $Key -o $OutputPath }
-                else { & age --encrypt -r $Key -o $OutputPath $Target }
+                if ($IsDirectory) { & tar -c -C $Target.Parent $Target.Name | & age --encrypt -i $Key -o $OutputPath }
+                else { & age --encrypt -i $Key -o $OutputPath $Target }
             }
             else {
                 if ($IsDirectory) { & tar -c -C $Target.Parent $Target.Name | & age --encrypt -p -o $OutputPath }
