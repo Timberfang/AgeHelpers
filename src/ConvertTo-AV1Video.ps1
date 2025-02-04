@@ -114,6 +114,7 @@ function ConvertTo-AV1Video {
                     Default { Write-Error -Message "Unrecognized audio format. Defaulting to $AudioBitRate." }
                 }
             }
+            else { $AudioBitrate = 96000 }
 
             # Set up ffmpeg arguments
             $FFMpegParams = @(
