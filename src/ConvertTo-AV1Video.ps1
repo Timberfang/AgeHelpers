@@ -134,7 +134,7 @@ function ConvertTo-AV1Video {
                 $FFMpegParams += @('-vf', $Crop) # Crop borders
             }
 
-            & ffmpeg @FFMpegParams $Target -loglevel quiet -stats
+            & ffmpeg @FFMpegParams $Target -loglevel error -stats
         }
     }
 
