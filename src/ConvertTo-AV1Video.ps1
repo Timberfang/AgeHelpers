@@ -134,6 +134,9 @@ function ConvertTo-AV1Video {
                 $FFMpegParams += @('-vf', $Crop) # Crop borders
             }
 
+            # Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
+            $FFMpegParams += @('-af', 'aformat=channel_layouts=7.1|5.1|stereo')
+
             & ffmpeg @FFMpegParams $Target -loglevel error -stats
         }
     }
