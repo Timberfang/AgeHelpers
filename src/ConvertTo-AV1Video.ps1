@@ -93,9 +93,10 @@ function ConvertTo-AV1Video {
 
     process {
         foreach ($File in $Files) {
-            if ($IsDirectory -and $PreserveStructure) { $Target = Join-Path $Destination $File.Directory.FullName.Substring($Path.Length) }
+            if ($IsDirectory -and $PreserveStructure) { $Target = Join-Path $Destination $File.Directory.FullName.Substring($Path.Length) | Join-Path -ChildPath $File.Name }
             elseif ($IsDirectory) { $Target = Join-Path $Destination $File.Name }
             else { $Target = $Destination }
+            New-Item (Split-Path $Target -Parent) -ItemType Directory -Force | Out-Null
 
             # Skip if target file already exists
             if (Test-Path $Target) {
