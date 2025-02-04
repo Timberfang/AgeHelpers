@@ -28,7 +28,7 @@ function ConvertTo-AV1Video {
         [Parameter(ParameterSetName = 'PresetConfig')]
         [ValidateSet('Standard', 'High')]
         [string]
-        $Preset = 'Standard',
+        $Preset,
 
         [Parameter()]
         [switch]
