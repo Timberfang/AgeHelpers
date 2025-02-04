@@ -117,7 +117,7 @@ function ConvertTo-AV1Video {
 
             if ($KeepChannels) {
                 # Get number of audio channels
-                [int]$Channels = & $FFProbePath -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $File
+                [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $File
                 switch ($Channels) {
                     { $_ -ge 7 } { $AudioBitrate = 320 }
                     { ($_ -ge 5) -and ($_ -lt 7) } { $AudioBitrate = 256 }
