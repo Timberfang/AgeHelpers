@@ -104,6 +104,18 @@ function ConvertTo-AV1Video {
                 Continue
             }
 
+            # Get number of audio channels
+            if ($KeepChannels) {
+                [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $File
+                switch ($Channels) {
+                    { $_ -ge 7 } { $AudioBitrate = 320000 }
+                    { ($_ -ge 5) -and ($_ -lt 7) } { $AudioBitrate = 256000 }
+                    { $_ -le 2 } { $AudioBitrate = 128000 }
+                    Default { Write-Error -Message "Unrecognized audio format. Defaulting to $AudioBitRate." }
+                }
+            }
+
+            # Set up ffmpeg arguments
             $FFMpegParams = @(
                 '-i', $File.FullName,
                 '-c:v', 'libsvtav1',
@@ -112,21 +124,11 @@ function ConvertTo-AV1Video {
                 '-c:a', 'libopus',
                 '-b:a', $AudioBitrate,
                 '-c:s', 'copy',
-                '-map', '0:m:language:eng:?',
-                '-map', '0:m:language:und:?'
+                '-af', 'aformat=channel_layouts=7.1|5.1|stereo' # Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
             )
 
-            if ($KeepChannels) {
-                # Get number of audio channels
-                [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $File
-                switch ($Channels) {
-                    { $_ -ge 7 } { $AudioBitrate = 320 }
-                    { ($_ -ge 5) -and ($_ -lt 7) } { $AudioBitrate = 256 }
-                    { $_ -le 2 } { $AudioBitrate = 128 }
-                    Default { Write-Error -Message "Unrecognized audio format. Defaulting to $AudioBitRate." }
-                }
-            }
-            else { $FFMpegParams += @('-ac', 2) } # Downmix to stereo
+            # Downmix to stereo if needed
+            if (!$KeepChannels) { $FFMpegParams += @('-ac', 2) }
 
             # Detect cropping values
             if (!$NoCrop) {
@@ -134,9 +136,6 @@ function ConvertTo-AV1Video {
                 $Crop = ($CropData | Select-String -Pattern 'crop=.*' | Select-Object -Last 1 ).Matches.Value
                 $FFMpegParams += @('-vf', $Crop) # Crop borders
             }
-
-            # Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
-            $FFMpegParams += @('-af', 'aformat=channel_layouts=7.1|5.1|stereo')
 
             & ffmpeg @FFMpegParams $Target -loglevel error -stats
         }
