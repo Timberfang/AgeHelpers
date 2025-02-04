@@ -1,5 +1,5 @@
 function ConvertTo-AV1Video {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Default')]
     param (
         [Parameter(Mandatory)]
         [string]
@@ -14,10 +14,12 @@ function ConvertTo-AV1Video {
         $Filter = @('.mkv', '.webm', '.mp4', '.m4v', '.m4a', '.avi', '.mov', '.qt', '.ogv', '.ogg'),
 
         [Parameter(ParameterSetName = 'SpecificConfig')]
+        [ValidateRange(0, 63)]
         [int]
         $VideoQuality = 35, # Default AV1 crf
 
         [Parameter(ParameterSetName = 'SpecificConfig')]
+        [ValidateRange(0, 13)]
         [int]
         $VideoPreset = 10, # Default AV1 preset
 
