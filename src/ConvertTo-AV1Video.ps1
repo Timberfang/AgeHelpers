@@ -111,11 +111,13 @@ function ConvertTo-AV1Video {
                 '-preset', $VideoPreset,
                 '-c:a', 'libopus',
                 '-b:a', $AudioBitrate,
-                # '-vf', $Crop
-                $Target
+                '-c:s', 'copy',
+                '-map', '0:m:language:eng:?',
+                '-map', '0:m:language:und:?'
             )
 
-            & ffmpeg @FFMpegParams -loglevel quiet -stats
+
+            & ffmpeg @FFMpegParams $Target -loglevel quiet -stats
         }
     }
 
