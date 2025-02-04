@@ -38,7 +38,11 @@ function ConvertTo-AV1Video {
 
         [Parameter()]
         [switch]
-        $NoCrop
+        $NoCrop,
+
+        [Parameter()]
+        [switch]
+        $KeepChannels
     )
 
     begin {
@@ -66,6 +70,7 @@ function ConvertTo-AV1Video {
                     $VideoQuality = 27
                     $VideoPreset = 6
                     $AudioBitrate = 128
+                    $KeepChannels = $true
                 }
                 Default {
                     $VideoQuality = 33
@@ -116,6 +121,17 @@ function ConvertTo-AV1Video {
                 '-map', '0:m:language:und:?'
             )
 
+            if ($KeepChannels) {
+                # Get number of audio channels
+                [int]$Channels = & $FFProbePath -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $File
+                switch ($Channels) {
+                    { $_ -ge 7 } { $AudioBitrate = 320 }
+                    { ($_ -ge 5) -and ($_ -lt 7) } { $AudioBitrate = 256 }
+                    { $_ -le 2 } { $AudioBitrate = 128 }
+                    Default { Write-Error -Message "Unrecognized audio format. Defaulting to $AudioBitRate." }
+                }
+            }
+            else { $FFMpegParams += @('-ac', 2) } # Downmix to stereo
 
             & ffmpeg @FFMpegParams $Target -loglevel quiet -stats
         }
