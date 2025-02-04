@@ -23,9 +23,9 @@ function ConvertTo-AV1Video {
         [int]
         $VideoPreset = 10, # Default AV1 preset
 
-        [Parameter(ParameterSetName = 'SpecificConfig')]
-        [int]
-        $AudioBitrate = 96, # Default OPUS preset
+        # [Parameter(ParameterSetName = 'SpecificConfig')]
+        # [int]
+        # $AudioBitrate = 96, # Default OPUS preset
 
         [Parameter(ParameterSetName = 'PresetConfig')]
         [ValidateSet('Standard', 'High')]
