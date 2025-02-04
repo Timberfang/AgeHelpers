@@ -129,7 +129,7 @@ function ConvertTo-AV1Video {
 
             # Detect cropping values
             if (!$NoCrop) {
-                $CropData = & ffmpeg -skip_frame nokey -y -hide_banner -nostats -i $File -vf cropdetect -an -f null - 2>&1
+                $CropData = & ffmpeg -skip_frame nokey -y -hide_banner -nostats -t 10:00 -i $File -vf cropdetect -an -f null - 2>&1
                 $Crop = ($CropData | Select-String -Pattern 'crop=.*' | Select-Object -Last 1 ).Matches.Value
                 $FFMpegParams += @('-vf', $Crop) # Crop borders
             }
