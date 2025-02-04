@@ -103,12 +103,6 @@ function ConvertTo-AV1Video {
                 Continue
             }
 
-            # Detect cropping values
-            # if (!$NoCrop) {
-            #     $CropData & ffmpeg -skip_frame nokey -y -hide_banner -nostats -i $File -vf cropdetect -an -f null - 2>&1
-            #     $Crop = ($CropData | Select-String -Pattern 'crop=.*' | Select-Object -Last 1 ).Matches.Value
-            # }
-
             $FFMpegParams = @(
                 '-i', $File.FullName,
                 '-c:v', 'libsvtav1',
@@ -132,6 +126,13 @@ function ConvertTo-AV1Video {
                 }
             }
             else { $FFMpegParams += @('-ac', 2) } # Downmix to stereo
+
+            # Detect cropping values
+            if (!$NoCrop) {
+                $CropData = & ffmpeg -skip_frame nokey -y -hide_banner -nostats -i $File -vf cropdetect -an -f null - 2>&1
+                $Crop = ($CropData | Select-String -Pattern 'crop=.*' | Select-Object -Last 1 ).Matches.Value
+                $FFMpegParams += @('-vf', $Crop) # Crop borders
+            }
 
             & ffmpeg @FFMpegParams $Target -loglevel quiet -stats
         }
