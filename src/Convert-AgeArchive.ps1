@@ -71,12 +71,12 @@ function Convert-AgeArchive {
         Set-StrictMode -Version 3
 
         # Test if external commands are available
-        if ($null -eq (Get-Command 'age' -ErrorAction SilentlyContinue)) { throw 'Error: age.exe not found on system PATH' }
-        if ($null -eq (Get-Command 'tar' -ErrorAction SilentlyContinue)) { throw 'Error: tar.exe not found on system PATH' }
+        if ($null -eq (Get-Command 'age' -ErrorAction SilentlyContinue)) { throw 'Error: Cannot find age on system PATH' }
+        if ($null -eq (Get-Command 'tar' -ErrorAction SilentlyContinue)) { throw 'Error: Cannot find tar on system PATH' }
 
         # Process input
-        if (!(Test-Path $Path)) { throw "Error: Path '$Path' not found." }
-        if (($null -ne $Key) -and !(Test-Path $Key)) { throw "Error: Path '$Key' not found." }
+        if (!(Test-Path $Path)) { throw "Error: Cannot find path '$Path' because it does not exist." }
+        if (($null -ne $Key) -and !(Test-Path $Key)) { throw "Error: Cannot find path '$Key' because it does not exist." }
         $Target = Get-Item $Path
         $IsDirectory = $Target.PSIsContainer -or $Target -like '*.tar.age'
 
