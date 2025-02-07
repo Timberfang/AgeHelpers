@@ -110,12 +110,12 @@ function ConvertTo-AV1Video {
         Write-Verbose 'Validating inputs'
         if (!(Test-Path $Path -PathType Leaf)) {
             Write-Error "Path '$Path' is a directory or does not exist, skipping file..."
-            Continue
+            Return
         }
         else { Write-Verbose "Path '$Path' exists" }
         if ($Path.Extension -notin $Filter) {
             Write-Verbose "File '$Path' not in filter list $Filter, skipping file..."
-            Continue
+            Return
         }
         if ($IsDirectory) {
             $Target = Join-Path $Destination $Path.Name
@@ -127,14 +127,14 @@ function ConvertTo-AV1Video {
         }
         if (Test-Path $Target) {
             Write-Error -Message "Path '$Target' exists, skipping file..."
-            Continue
+            Return
         }
         if (!$NoSurround) {
             Write-Verbose 'Detecting channel count'
             [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v error $Path
             if ($LASTEXITCODE -ne 0) {
                 Write-Error -Message "ffprobe failed to parse audio channels from file '$Path', skipping file..."
-                Continue
+                Return
             }
             switch ($Channels) {
                 { $_ -ge 7 } { $AudioBitrate = 320000 }
@@ -160,7 +160,7 @@ function ConvertTo-AV1Video {
             $CropData = & ffmpeg -skip_frame nokey -y -hide_banner -nostats -t 10:00 -i $Path -vf cropdetect -an -f null - 2>&1
             if ($LASTEXITCODE -ne 0) {
                 Write-Error -Message "ffmpeg failed to run crop detection on file '$Path', skipping file..."
-                Continue
+                Return
             }
             $Crop = ($CropData | Select-String -Pattern 'crop=.*' | Select-Object -Last 1 ).Matches.Value
             $FFMpegParams += @('-vf', $Crop)
@@ -178,7 +178,7 @@ function ConvertTo-AV1Video {
         if ($LASTEXITCODE -ne 0) {
             Write-Error -Message "ffmpeg failed to encode '$Path', deleting target file at '$Target'..."
             if (Test-Path $Target) { Remove-Item $Target }
-            Continue
+            Return
         }
     }
 
