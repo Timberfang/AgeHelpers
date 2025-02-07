@@ -32,8 +32,8 @@ function ConvertTo-AV1Video {
 
         # Test if external commands are available
         Write-Verbose 'Checking for ffmpeg and ffprobe'
-        if ($null -eq (Get-Command 'ffmpeg' -ErrorAction SilentlyContinue)) { throw 'Error: Cannot find ffmpeg on system PATH' }
-        if ($null -eq (Get-Command 'ffprobe' -ErrorAction SilentlyContinue)) { throw 'Error: Cannot find ffprobe on system PATH' }
+        if ($null -eq (Get-Command 'ffmpeg' -ErrorAction SilentlyContinue)) { throw 'Cannot find ffmpeg on system PATH' }
+        if ($null -eq (Get-Command 'ffprobe' -ErrorAction SilentlyContinue)) { throw 'Cannot find ffprobe on system PATH' }
 
         # Assume destination path without extension is meant to be a directory
         # May not always be valid, but I don't now of any better methods
@@ -41,7 +41,7 @@ function ConvertTo-AV1Video {
         if ((Split-Path $Destination -Extension) -eq "") {
             $IsDirectory = $true
             try { New-Item -Path $Destination -ItemType Directory -Force | Out-Null }
-            catch { throw 'Error: Failed to create output directory.' }
+            catch { throw 'Failed to create output directory.' }
         }
         else { $IsDirectory = $false }
 
@@ -74,12 +74,12 @@ function ConvertTo-AV1Video {
         Write-Information "[$(Get-Date -Format yyyy-MM-dd-HH:MM)] Preparing input..." -InformationAction Continue
         Write-Verbose 'Validating inputs'
         if (!(Test-Path $Path -PathType Leaf)) {
-            Write-Error "Error: Path '$Path' is a directory or does not exist, skipping..."
+            Write-Error "Path '$Path' is a directory or does not exist, skipping file..."
             Continue
         }
         else { Write-Verbose "Path '$Path' exists" }
         if ($Path.Extension -notin $Filter) {
-            Write-Verbose "File '$Path' not in filter list $Filter, skipping..."
+            Write-Verbose "File '$Path' not in filter list $Filter, skipping file..."
             Continue
         }
         if ($IsDirectory) {
@@ -91,12 +91,16 @@ function ConvertTo-AV1Video {
             Write-Verbose "Path '$Target' is a file"
         }
         if (Test-Path $Target) {
-            Write-Error -Message "Error: Path '$Target' exists, skipping..."
+            Write-Error -Message "Path '$Target' exists, skipping file..."
             Continue
         }
         if (!$NoSurround) {
             Write-Verbose 'Detecting channel count'
-            [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $Path
+            [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v error $Path
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error -Message "ffprobe failed to parse audio channels from file '$Path', skipping file..."
+                Continue
+            }
             switch ($Channels) {
                 { $_ -ge 7 } { $AudioBitrate = 320000 }
                 { ($_ -ge 5) -and ($_ -lt 7) } { $AudioBitrate = 256000 }
@@ -119,6 +123,10 @@ function ConvertTo-AV1Video {
         if (!$NoCrop) {
             Write-Verbose 'Detecting cropping dimensions'
             $CropData = & ffmpeg -skip_frame nokey -y -hide_banner -nostats -t 10:00 -i $Path -vf cropdetect -an -f null - 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error -Message "ffmpeg failed to run crop detection on file '$Path', skipping file..."
+                Continue
+            }
             $Crop = ($CropData | Select-String -Pattern 'crop=.*' | Select-Object -Last 1 ).Matches.Value
             $FFMpegParams += @('-vf', $Crop)
             Write-Verbose "Cropping config is $Crop"
@@ -132,6 +140,11 @@ function ConvertTo-AV1Video {
         Write-Information "[$(Get-Date -Format yyyy-MM-dd-HH:MM)] Encoding '$Path'..." -InformationAction Continue
         New-Item (Split-Path $Target -Parent) -ItemType Directory -Force | Out-Null
         & ffmpeg @FFMpegParams $Target -loglevel error -stats
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error -Message "ffmpeg failed to encode '$Path', deleting target file at '$Target'..."
+            if (Test-Path $Target) { Remove-Item $Target }
+            Continue
+        }
     }
 
     end {
