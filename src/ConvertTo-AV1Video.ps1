@@ -78,6 +78,10 @@ function ConvertTo-AV1Video {
             Continue
         }
         else { Write-Verbose "Path '$Path' exists" }
+        if ($Path.Extension -notin $Filter) {
+            Write-Verbose "File '$Path' not in filter list $Filter, skipping..."
+            Continue
+        }
         if ($IsDirectory) {
             $Target = Join-Path $Destination $Path.Name
             Write-Verbose "Path '$Target' is a directory"
