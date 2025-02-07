@@ -36,7 +36,7 @@ function ConvertTo-AV1Video {
         if ($null -eq (Get-Command 'ffprobe' -ErrorAction SilentlyContinue)) { throw 'Cannot find ffprobe on system PATH' }
 
         # Assume destination path without extension is meant to be a directory
-        # May not always be valid, but I don't now of any better methods
+        # May not always be valid, but I don't know of any better methods
         Write-Verbose 'Checking if destination is a directory'
         if ((Split-Path $Destination -Extension) -eq "") {
             $IsDirectory = $true
