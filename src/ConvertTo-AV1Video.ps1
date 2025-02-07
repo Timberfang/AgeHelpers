@@ -92,7 +92,7 @@ function ConvertTo-AV1Video {
         }
         if (!$NoSurround) {
             Write-Verbose 'Detecting channel count'
-            [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $File
+            [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $Path
             switch ($Channels) {
                 { $_ -ge 7 } { $AudioBitrate = 320000 }
                 { ($_ -ge 5) -and ($_ -lt 7) } { $AudioBitrate = 256000 }
@@ -103,7 +103,7 @@ function ConvertTo-AV1Video {
 
         # Set up ffmpeg arguments
         $FFMpegParams = @(
-            '-i', $File.FullName,
+            '-i', $Path.FullName,
             '-c:v', 'libsvtav1',
             '-crf', $VideoQuality,
             '-preset', $VideoPreset,
@@ -114,7 +114,7 @@ function ConvertTo-AV1Video {
         )
         if (!$NoCrop) {
             Write-Verbose 'Detecting cropping dimensions'
-            $CropData = & ffmpeg -skip_frame nokey -y -hide_banner -nostats -t 10:00 -i $File -vf cropdetect -an -f null - 2>&1
+            $CropData = & ffmpeg -skip_frame nokey -y -hide_banner -nostats -t 10:00 -i $Path -vf cropdetect -an -f null - 2>&1
             $Crop = ($CropData | Select-String -Pattern 'crop=.*' | Select-Object -Last 1 ).Matches.Value
             $FFMpegParams += @('-vf', $Crop)
             Write-Verbose "Cropping config is $Crop"
