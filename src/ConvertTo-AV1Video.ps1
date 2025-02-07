@@ -1,8 +1,8 @@
 function ConvertTo-AV1Video {
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param (
-        [Parameter(Mandatory)]
-        [string]
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [System.IO.FileInfo]
         $Path,
 
         [Parameter(Mandatory)]
@@ -13,28 +13,10 @@ function ConvertTo-AV1Video {
         [string[]]
         $Filter = @('.mkv', '.webm', '.mp4', '.m4v', '.m4a', '.avi', '.mov', '.qt', '.ogv', '.ogg'),
 
-        [Parameter(ParameterSetName = 'SpecificConfig')]
-        [ValidateRange(0, 63)]
-        [int]
-        $VideoQuality = 35, # Default AV1 crf
-
-        [Parameter(ParameterSetName = 'SpecificConfig')]
-        [ValidateRange(0, 13)]
-        [int]
-        $VideoPreset = 10, # Default AV1 preset
-
-        # [Parameter(ParameterSetName = 'SpecificConfig')]
-        # [int]
-        # $AudioBitrate = 96, # Default OPUS preset
-
-        [Parameter(ParameterSetName = 'PresetConfig')]
+        [Parameter()]
         [ValidateSet('Standard', 'High')]
         [string]
-        $Preset,
-
-        [Parameter()]
-        [switch]
-        $PreserveStructure,
+        $Preset = 'Standard',
 
         [Parameter()]
         [switch]
@@ -42,49 +24,45 @@ function ConvertTo-AV1Video {
 
         [Parameter()]
         [switch]
-        $KeepChannels
+        $NoSurround
     )
 
     begin {
         Set-StrictMode -Version 3
 
         # Test if external commands are available
+        Write-Verbose 'Checking for ffmpeg and ffprobe'
         if ($null -eq (Get-Command 'ffmpeg' -ErrorAction SilentlyContinue)) { throw 'Error: Cannot find ffmpeg on system PATH' }
         if ($null -eq (Get-Command 'ffprobe' -ErrorAction SilentlyContinue)) { throw 'Error: Cannot find ffprobe on system PATH' }
 
-        # Ensure input & output locations exist - if the output is a directory, create it if it doesn't exist
-        # This isn't needed for files - ffmpeg will create those on its own
-        if (-not (Test-Path $Path)) { throw "Error: Cannot find path '$Path' because it does not exist" }
-        if (Test-Path $Destination -PathType Container) { $IsDirectory = $true }
-        elseif ((Split-Path $Destination -Extension) -eq "") {
+        # Assume destination path without extension is meant to be a directory
+        # May not always be valid, but I don't now of any better methods
+        Write-Verbose 'Checking if destination is a directory'
+        if ((Split-Path $Destination -Extension) -eq "") {
             $IsDirectory = $true
-            try { New-Item -Path $Destination -ItemType Directory | Out-Null }
-            catch { throw 'Error: Failed to create media output path.' }
+            try { New-Item -Path $Destination -ItemType Directory -Force | Out-Null }
+            catch { throw 'Error: Failed to create output directory.' }
         }
         else { $IsDirectory = $false }
 
-        # Handle preset, if configured
-        if ($null -ne $Preset) {
-            switch ($Preset) {
-                'High' {
-                    $VideoQuality = 27
-                    $VideoPreset = 6
-                    $AudioBitrate = 128
-                    $KeepChannels = $true
-                }
-                Default {
-                    $VideoQuality = 33
-                    $VideoPreset = 10
-                    $AudioBitrate = 96
-                }
+        # Handle preset
+        switch ($Preset) {
+            'High' {
+                $VideoQuality = 27
+                $VideoPreset = 6
+                $AudioBitrate = 128000
+            }
+            Default {
+                $VideoQuality = 33
+                $VideoPreset = 10
+                $AudioBitrate = 96000
+                $NoSurround = $true
             }
         }
-
-        # Process input
-        $Files = Get-ChildItem -Path $Path -Recurse -File | Where-Object Extension -In $Filter
-        $AudioBitrate = $AudioBitrate * 1000 # Convert to kilobits/s
+        Write-Verbose "Video CRF: $VideoQuality; Video Preset: $VideoPreset; Audio Bitrate: $AudioBitrate; Keep Channels: $(!$NoSurround)"
 
         # Handles SVT_LOG environment variable - used to block SVT-AV1's output
+        Write-Verbose 'Silencing the AV1 encoder'
         $SVTConfigPath = Join-Path 'env:' 'SVT_LOG'
         $SVTConfig = Test-Path $SVTConfigPath
         if ($SVTConfig) { $SVTValue = Get-Item $SVTConfigPath | Select-Object -ExpandProperty Value }
@@ -92,57 +70,69 @@ function ConvertTo-AV1Video {
     }
 
     process {
-        foreach ($File in $Files) {
-            if ($IsDirectory -and $PreserveStructure) { $Target = Join-Path $Destination $File.Directory.FullName.Substring($Path.Length) | Join-Path -ChildPath $File.Name }
-            elseif ($IsDirectory) { $Target = Join-Path $Destination $File.Name }
-            else { $Target = $Destination }
-            New-Item (Split-Path $Target -Parent) -ItemType Directory -Force | Out-Null
-
-            # Skip if target file already exists
-            if (Test-Path $Target) {
-                Write-Error -Message "Error: Path '$Target' exists, skipping..."
-                Continue
-            }
-
-            # Get number of audio channels
-            if ($KeepChannels) {
-                [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $File
-                switch ($Channels) {
-                    { $_ -ge 7 } { $AudioBitrate = 320000 }
-                    { ($_ -ge 5) -and ($_ -lt 7) } { $AudioBitrate = 256000 }
-                    { $_ -le 2 } { $AudioBitrate = 128000 }
-                    Default { Write-Error -Message "Unrecognized audio format. Defaulting to $AudioBitRate." }
-                }
-            }
-            else { $AudioBitrate = 96000 }
-
-            # Set up ffmpeg arguments
-            $FFMpegParams = @(
-                '-i', $File.FullName,
-                '-c:v', 'libsvtav1',
-                '-crf', $VideoQuality,
-                '-preset', $VideoPreset,
-                '-c:a', 'libopus',
-                '-b:a', $AudioBitrate,
-                '-c:s', 'copy',
-                '-af', 'aformat=channel_layouts=7.1|5.1|stereo' # Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
-            )
-
-            # Downmix to stereo if needed
-            if (!$KeepChannels) { $FFMpegParams += @('-ac', 2) }
-
-            # Detect cropping values
-            if (!$NoCrop) {
-                $CropData = & ffmpeg -skip_frame nokey -y -hide_banner -nostats -t 10:00 -i $File -vf cropdetect -an -f null - 2>&1
-                $Crop = ($CropData | Select-String -Pattern 'crop=.*' | Select-Object -Last 1 ).Matches.Value
-                $FFMpegParams += @('-vf', $Crop) # Crop borders
-            }
-
-            & ffmpeg @FFMpegParams $Target -loglevel error -stats
+        # Validate inputs
+        Write-Information "[$(Get-Date -Format yyyy-MM-dd-HH:MM)] Preparing input..." -InformationAction Continue
+        Write-Verbose 'Validating inputs'
+        if (!(Test-Path $Path -PathType Leaf)) {
+            Write-Error "Error: Path '$Path' is a directory or does not exist, skipping..."
+            Continue
         }
+        else { Write-Verbose "Path '$Path' exists" }
+        if ($IsDirectory) {
+            $Target = Join-Path $Destination $Path.Name
+            Write-Verbose "Path '$Target' is a directory"
+        }
+        else {
+            $Target = $Destination
+            Write-Verbose "Path '$Target' is a file"
+        }
+        if (Test-Path $Target) {
+            Write-Error -Message "Error: Path '$Target' exists, skipping..."
+            Continue
+        }
+        if (!$NoSurround) {
+            Write-Verbose 'Detecting channel count'
+            [int]$Channels = & ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -v 0 $File
+            switch ($Channels) {
+                { $_ -ge 7 } { $AudioBitrate = 320000 }
+                { ($_ -ge 5) -and ($_ -lt 7) } { $AudioBitrate = 256000 }
+                { $_ -le 2 } { $AudioBitrate = 128000 }
+                Default { Write-Error -Message "Unrecognized audio format. Defaulting to $AudioBitRate." }
+            }
+        }
+
+        # Set up ffmpeg arguments
+        $FFMpegParams = @(
+            '-i', $File.FullName,
+            '-c:v', 'libsvtav1',
+            '-crf', $VideoQuality,
+            '-preset', $VideoPreset,
+            '-c:a', 'libopus',
+            '-b:a', $AudioBitrate,
+            '-c:s', 'copy',
+            '-af', 'aformat=channel_layouts=7.1|5.1|stereo' # Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
+        )
+        if (!$NoCrop) {
+            Write-Verbose 'Detecting cropping dimensions'
+            $CropData = & ffmpeg -skip_frame nokey -y -hide_banner -nostats -t 10:00 -i $File -vf cropdetect -an -f null - 2>&1
+            $Crop = ($CropData | Select-String -Pattern 'crop=.*' | Select-Object -Last 1 ).Matches.Value
+            $FFMpegParams += @('-vf', $Crop)
+            Write-Verbose "Cropping config is $Crop"
+        }
+        if ($NoSurround) {
+            Write-Verbose 'Using stereo sound'
+            $FFMpegParams += @('-ac', 2)
+        }
+
+        # Encode
+        Write-Information "[$(Get-Date -Format yyyy-MM-dd-HH:MM)] Encoding '$Path'..." -InformationAction Continue
+        New-Item (Split-Path $Target -Parent) -ItemType Directory -Force | Out-Null
+        & ffmpeg @FFMpegParams $Target -loglevel error -stats
     }
 
     end {
+        # Perform cleanup
+        Write-Verbose 'Cleaning up leftovers'
         if ($SVTConfig) { $env:SVT_LOG = $SVTValue }
         else { Remove-Item $SVTConfigPath }
     }
