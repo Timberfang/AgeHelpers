@@ -60,7 +60,7 @@ function Convert-AgeArchive {
 
         [Parameter()]
         [string]
-        $Key = $null,
+        $Key,
 
         [Parameter()]
         [switch]
@@ -76,7 +76,7 @@ function Convert-AgeArchive {
 
         # Process input
         if (!(Test-Path $Path)) { throw "Error: Cannot find path '$Path' because it does not exist." }
-        if (($null -ne $Key) -and !(Test-Path $Key)) { throw "Error: Cannot find path '$Key' because it does not exist." }
+        if (("" -ne $Key) -and !(Test-Path $Key)) { throw "Error: Cannot find path '$Key' because it does not exist." }
         $Target = Get-Item $Path
         $IsDirectory = $Target.PSIsContainer -or $Target -like '*.tar.age'
 
@@ -90,7 +90,7 @@ function Convert-AgeArchive {
     process {
         # Encrypt mode
         if ($Encrypt) {
-            if ($null -ne $Key) {
+            if ("" -ne $Key) {
                 if ($IsDirectory) { & tar -c -C $Target.Parent $Target.Name | & age --encrypt -i $Key -o $OutputPath }
                 else { & age --encrypt -i $Key -o $OutputPath $Target }
             }
@@ -102,7 +102,7 @@ function Convert-AgeArchive {
 
         # Decrypt mode
         elseif ($Decrypt) {
-            if ($null -ne $Key) {
+            if ("" -ne $Key) {
                 if ($IsDirectory) { & age --decrypt -i $Key $Target | tar -x -C $Target.Directory }
                 else { & age --decrypt -i $Key -o $OutputPath $Target }
             }
