@@ -1,4 +1,39 @@
 function ConvertTo-AV1Video {
+    <#
+    .SYNOPSIS
+        Encodes a video file using AV1 and OPUS encoding
+    .DESCRIPTION
+        A longer description of the function, its purpose, common use cases, etc.
+    .NOTES
+        For this function to work correctly, ffmpeg and ffprobe must be available on the PATH. These programs may be downloaded at https://ffmpeg.org.
+    .EXAMPLE
+        Get-Item 'C:\Users\ExampleUser\Videos\Input.mp4' -File -Recurse | ConvertTo-AV1Video -Destination 'C:\Users\ExampleUser\ProcessedVideos\Output.mp4'
+        Encode a single video file.
+    .EXAMPLE
+        Get-ChildItem 'C:\Users\ExampleUser\Videos' -File -Recurse | ConvertTo-AV1Video -Destination 'C:\Users\ExampleUser\ProcessedVideos'
+        Encode a directory of video files.
+    .PARAMETER Path
+        A path to a file or folder.
+    .PARAMETER Destination
+        A path to a file or folder. If a folder was used for the input, a folder must be used for the output.
+    .PARAMETER Filter
+        An array of one or more file extensions to treat as video files. By default, it searches for most common file extensions for videos.
+    .PARAMETER Preset
+        Select a preset for video processing.
+
+        'Standard' is designed for common videos downloaded from the web or produced by an amateur. It uses stereo sound only, with moderate settings for video and audio quality.
+
+        'High' is designed for professional video productions, such as movies or television shows. It preserves the original channel layout (either stereo, 5.1 surround, or 7.1 surround),
+        with high quality settings for video and audio. If necessary, sound may be downgraded to stereo using the '-NoSurround' parameter.
+    .PARAMETER NoCrop
+        Disables cropping of the video. By default, this function attempts to detect and remove black borders around videos.
+
+        These were designed for older video players, but most modern devices automatically add any necessary padding around the video.
+        Removing existing padding allows the device to handle the video appropriately.
+    .PARAMETER NoSurround
+        Disables surround sound. If the input is already in stereo, this parameter has no effect.
+    #>
+
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
