@@ -1,4 +1,4 @@
-function ConvertTo-AV1Video {
+function ConvertTo-AV1 {
     <#
     .SYNOPSIS
         Encodes a video file using AV1 and OPUS encoding
@@ -7,10 +7,10 @@ function ConvertTo-AV1Video {
     .NOTES
         For this function to work correctly, ffmpeg and ffprobe must be available on the PATH. These programs may be downloaded at https://ffmpeg.org.
     .EXAMPLE
-        Get-Item 'C:\Users\ExampleUser\Videos\Input.mp4' -File -Recurse | ConvertTo-AV1Video -Destination 'C:\Users\ExampleUser\ProcessedVideos\Output.mp4'
+        Get-Item 'C:\Users\ExampleUser\Videos\Input.mp4' -File -Recurse | ConvertTo-AV1 -Destination 'C:\Users\ExampleUser\ProcessedVideos\Output.mp4'
         Encode a single video file.
     .EXAMPLE
-        Get-ChildItem 'C:\Users\ExampleUser\Videos' -File -Recurse | ConvertTo-AV1Video -Destination 'C:\Users\ExampleUser\ProcessedVideos'
+        Get-ChildItem 'C:\Users\ExampleUser\Videos' -File -Recurse | ConvertTo-AV1 -Destination 'C:\Users\ExampleUser\ProcessedVideos'
         Encode a directory of video files.
     .PARAMETER Path
         A path to a file or folder.
