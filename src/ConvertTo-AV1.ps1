@@ -119,11 +119,11 @@ function ConvertTo-AV1 {
         }
         if ($IsDirectory) {
             $Target = Join-Path $Destination $Path.Name
-            Write-Verbose "Path '$Target' is a directory"
+            Write-Verbose "Path '$Destination' is a directory"
         }
         else {
             $Target = $Destination
-            Write-Verbose "Path '$Target' is a file"
+            Write-Verbose "Path '$Destination' is a file"
         }
         if (Test-Path $Target) {
             Write-Error -Message "Path '$Target' exists, skipping file..."
