@@ -6,12 +6,6 @@ function ConvertTo-AV1 {
         A longer description of the function, its purpose, common use cases, etc.
     .NOTES
         For this function to work correctly, ffmpeg and ffprobe must be available on the PATH. These programs may be downloaded at https://ffmpeg.org.
-    .EXAMPLE
-        Get-Item 'C:\Users\ExampleUser\Videos\Input.mp4' -File -Recurse | ConvertTo-AV1 -Destination 'C:\Users\ExampleUser\ProcessedVideos\Output.mp4'
-        Encode a single video file.
-    .EXAMPLE
-        Get-ChildItem 'C:\Users\ExampleUser\Videos' -File -Recurse | ConvertTo-AV1 -Destination 'C:\Users\ExampleUser\ProcessedVideos'
-        Encode a directory of video files.
     .PARAMETER Path
         A path to a file or folder.
     .PARAMETER Destination
@@ -32,6 +26,12 @@ function ConvertTo-AV1 {
         Removing existing padding allows the device to handle the video appropriately.
     .PARAMETER NoSurround
         Disables surround sound. If the input is already in stereo, this parameter has no effect.
+    .EXAMPLE
+        Get-Item 'C:\Users\ExampleUser\Videos\Input.mp4' -File -Recurse | ConvertTo-AV1 -Destination 'C:\Users\ExampleUser\ProcessedVideos\Output.mp4'
+        Encode a single video file.
+    .EXAMPLE
+        Get-ChildItem 'C:\Users\ExampleUser\Videos' -File -Recurse | ConvertTo-AV1 -Destination 'C:\Users\ExampleUser\ProcessedVideos'
+        Encode a directory of video files.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Default')]
