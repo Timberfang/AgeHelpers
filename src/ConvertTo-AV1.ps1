@@ -27,7 +27,7 @@ function ConvertTo-AV1 {
     .PARAMETER NoSurround
         Disables surround sound. If the input is already in stereo, this parameter has no effect.
     .EXAMPLE
-        Get-Item 'C:\Users\ExampleUser\Videos\Input.mp4' -File -Recurse | ConvertTo-AV1 -Destination 'C:\Users\ExampleUser\ProcessedVideos\Output.mp4'
+        Get-Item 'C:\Users\ExampleUser\Videos\Input.mp4' | ConvertTo-AV1 -Destination 'C:\Users\ExampleUser\ProcessedVideos\Output.mp4'
         Encode a single video file.
     .EXAMPLE
         Get-ChildItem 'C:\Users\ExampleUser\Videos' -File -Recurse | ConvertTo-AV1 -Destination 'C:\Users\ExampleUser\ProcessedVideos'
