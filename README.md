@@ -1,3 +1,3 @@
-# Age File Encryption Scripts
+# Helper Scripts
 
-Scripts I wrote to work with [age](https://github.com/FiloSottile/age) to encrypt files and folders. Use at your own risk.
+Scripts I wrote to automate tasks or programs. Use at your own risk.
